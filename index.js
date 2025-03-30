@@ -14,7 +14,9 @@ const allowedOrigins = [
   'http://localhost:3000',
   'https://to-do-frontend-smoky.vercel.app',
   'https://to-do-frontend-gq58m6iwt-sonas-projects-3106105e.vercel.app',
-  'https://to-do-frontend-cmvvmr4ti-sonas-projects-3106105e.vercel.app'
+  'https://to-do-frontend-cmvvmr4ti-sonas-projects-3106105e.vercel.app',
+  'https://to-do-frontend-i65jk0j8e-sonas-projects-3106105e.vercel.app',
+  'https://to-do-frontend-j0j3qix4q-sonas-projects-3106105e.vercel.app'
 ];
 
 const corsOptions = {
@@ -27,12 +29,14 @@ const corsOptions = {
     }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  credentials: true,
+  maxAge: 86400 // 24 hours
 };
 
 app.use(cors(corsOptions));
-app.options('*', cors()); // Enable preflight for all routes
+app.options('*', cors(corsOptions)); // Enable preflight for all routes with the same options
 app.use(express.json());
 
 // Enhanced todo data structure
@@ -320,15 +324,22 @@ app.get('/todos', (req, res) => {
     if (sort) {
       filteredTodos.sort((a, b) => {
         if (sort === 'dueDate') {
+          // Handle null/undefined dueDates
+          if (!a.dueDate && !b.dueDate) return 0;
+          if (!a.dueDate) return 1;
+          if (!b.dueDate) return -1;
           return new Date(a.dueDate) - new Date(b.dueDate);
         }
+        // Handle other sort fields
+        if (a[sort] === b[sort]) return 0;
         return a[sort] > b[sort] ? 1 : -1;
       });
     }
     
     res.json(filteredTodos);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error in GET /todos:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
