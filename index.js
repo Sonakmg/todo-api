@@ -16,11 +16,13 @@ const allowedOrigins = [
   'https://to-do-frontend-gq58m6iwt-sonas-projects-3106105e.vercel.app',
   'https://to-do-frontend-cmvvmr4ti-sonas-projects-3106105e.vercel.app',
   'https://to-do-frontend-i65jk0j8e-sonas-projects-3106105e.vercel.app',
-  'https://to-do-frontend-lhvwu1nxx-sonas-projects-3106105e.vercel.app'
+  'https://to-do-frontend-lhvwu1nxx-sonas-projects-3106105e.vercel.app',
+  'https://to-do-frontend-7yl842fdp-sonas-projects-3106105e.vercel.app'
 ];
 
 const corsOptions = {
   origin: function (origin, callback) {
+    console.log('Request origin:', origin);
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
@@ -39,6 +41,13 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions)); // Enable preflight for all routes with the same options
 app.use(express.json());
+
+// Add request logging middleware
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  console.log('Headers:', req.headers);
+  next();
+});
 
 // Enhanced todo data structure
 let todos = [
@@ -303,6 +312,13 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Add status colors configuration
+const statusColors = {
+  'todo': '#0078D4',      // Microsoft blue
+  'in-progress': '#FFB900', // Microsoft yellow
+  'completed': '#107C10'    // Microsoft green
+};
+
 // Helper function to find todo by ID
 const findTodoById = (id) => {
   const todo = todos.find(todo => todo.id === id);
@@ -313,6 +329,7 @@ const findTodoById = (id) => {
 // Get all todos with filtering and sorting
 app.get('/todos', (req, res) => {
   try {
+    console.log('GET /todos - Query params:', req.query);
     const { status, priority, sort } = req.query;
     
     let filteredTodos = [...todos];
@@ -345,6 +362,13 @@ app.get('/todos', (req, res) => {
       });
     }
     
+    // Add color property to each todo based on status
+    filteredTodos = filteredTodos.map(todo => ({
+      ...todo,
+      color: statusColors[todo.status] || '#0078D4' // Default to Microsoft blue if status not found
+    }));
+    
+    console.log(`Returning ${filteredTodos.length} todos`);
     res.json(filteredTodos);
   } catch (error) {
     console.error('Error in GET /todos:', error);
