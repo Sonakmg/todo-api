@@ -28,13 +28,14 @@ const corsOptions = {
       callback(new Error('Not allowed by CORS'));
     }
   },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
   exposedHeaders: ['Content-Range', 'X-Content-Range'],
   credentials: true,
   maxAge: 86400 // 24 hours
 };
 
+// Apply CORS middleware
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions)); // Enable preflight for all routes with the same options
 app.use(express.json());
@@ -293,10 +294,13 @@ let todos = [
   }
 ];
 
-// Error handling middleware
+// Add error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Something went wrong!' });
+  console.error('Error:', err);
+  res.status(500).json({
+    error: 'Internal Server Error',
+    message: process.env.NODE_ENV === 'development' ? err.message : undefined
+  });
 });
 
 // Helper function to find todo by ID
@@ -323,23 +327,31 @@ app.get('/todos', (req, res) => {
     
     if (sort) {
       filteredTodos.sort((a, b) => {
-        if (sort === 'dueDate') {
-          // Handle null/undefined dueDates
-          if (!a.dueDate && !b.dueDate) return 0;
-          if (!a.dueDate) return 1;
-          if (!b.dueDate) return -1;
-          return new Date(a.dueDate) - new Date(b.dueDate);
+        try {
+          if (sort === 'dueDate') {
+            // Handle null/undefined dueDates
+            if (!a.dueDate && !b.dueDate) return 0;
+            if (!a.dueDate) return 1;
+            if (!b.dueDate) return -1;
+            return new Date(a.dueDate) - new Date(b.dueDate);
+          }
+          // Handle other sort fields
+          if (a[sort] === b[sort]) return 0;
+          return a[sort] > b[sort] ? 1 : -1;
+        } catch (error) {
+          console.error('Error in sorting:', error);
+          return 0; // Return unchanged order if sorting fails
         }
-        // Handle other sort fields
-        if (a[sort] === b[sort]) return 0;
-        return a[sort] > b[sort] ? 1 : -1;
       });
     }
     
     res.json(filteredTodos);
   } catch (error) {
     console.error('Error in GET /todos:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ 
+      error: 'Internal server error',
+      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
