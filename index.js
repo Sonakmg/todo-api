@@ -2,25 +2,22 @@ const express = require('express');
 const cors = require('cors');
 const app = express();
 
-// Function to generate random dates within a reasonable range
-function randomDate() {
-  const start = new Date(2023, 0, 1); // Start from January 1, 2023
-  const end = new Date(2024, 11, 31); // End at December 31, 2024
-  return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime())).toISOString().split('T')[0];
-}
+// Enhanced CORS configuration
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://to-do-frontend-smoky.vercel.app',
+  'https://to-do-frontend-gq58m6iwt-sonas-projects-3106105e.vercel.app',
+  'https://to-do-frontend-cmvvmr4ti-sonas-projects-3106105e.vercel.app'
+];
 
-// Enhanced CORS configuration for production
 const corsOptions = {
-  origin: [
-    'http://localhost:3000',
-    'https://to-do-frontend-smoky.vercel.app',
-    // Add other allowed origins here
-  ],
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  origin: '*', // Allow all origins
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 };
-
 app.use(cors(corsOptions));
+app.options('*', cors()); // Enable preflight for all routes
 app.use(express.json());
 
 // Enhanced todo data structure
