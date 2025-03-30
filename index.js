@@ -1,5 +1,10 @@
 const express = require('express');
+const cors = require('cors'); 
 const app = express();
+
+
+// Enable CORS for all routes
+app.use(cors()); // This allows all origins - use only for development
 
 // Middleware to parse JSON requests
 app.use(express.json());
