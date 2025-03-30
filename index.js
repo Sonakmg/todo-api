@@ -2,6 +2,13 @@ const express = require('express');
 const cors = require('cors');
 const app = express();
 
+// Function to generate random dates within a reasonable range
+function randomDate() {
+  const start = new Date(2023, 0, 1); // Start from January 1, 2023
+  const end = new Date(2024, 11, 31); // End at December 31, 2024
+  return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime())).toISOString().split('T')[0];
+}
+
 // Enhanced CORS configuration for production
 const corsOptions = {
   origin: [
