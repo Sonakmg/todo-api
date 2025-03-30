@@ -2,6 +2,13 @@ const express = require('express');
 const cors = require('cors');
 const app = express();
 
+// Helper function to generate random dates
+function randomDate() {
+  const start = new Date(2023, 0, 1);
+  const end = new Date(2024, 0, 1);
+  return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime())).toISOString().split('T')[0];
+}
+
 // Enhanced CORS configuration
 const allowedOrigins = [
   'http://localhost:3000',
@@ -11,11 +18,19 @@ const allowedOrigins = [
 ];
 
 const corsOptions = {
-  origin: '*', // Allow all origins
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log('CORS blocked for origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 };
+
 app.use(cors(corsOptions));
 app.options('*', cors()); // Enable preflight for all routes
 app.use(express.json());
@@ -274,6 +289,12 @@ let todos = [
   }
 ];
 
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: 'Something went wrong!' });
+});
+
 // Helper function to find todo by ID
 const findTodoById = (id) => {
   const todo = todos.find(todo => todo.id === id);
@@ -283,28 +304,32 @@ const findTodoById = (id) => {
 
 // Get all todos with filtering and sorting
 app.get('/todos', (req, res) => {
-  const { status, priority, sort } = req.query;
-  
-  let filteredTodos = [...todos];
-  
-  if (status) {
-    filteredTodos = filteredTodos.filter(todo => todo.status === status);
+  try {
+    const { status, priority, sort } = req.query;
+    
+    let filteredTodos = [...todos];
+    
+    if (status) {
+      filteredTodos = filteredTodos.filter(todo => todo.status === status);
+    }
+    
+    if (priority) {
+      filteredTodos = filteredTodos.filter(todo => todo.priority === priority);
+    }
+    
+    if (sort) {
+      filteredTodos.sort((a, b) => {
+        if (sort === 'dueDate') {
+          return new Date(a.dueDate) - new Date(b.dueDate);
+        }
+        return a[sort] > b[sort] ? 1 : -1;
+      });
+    }
+    
+    res.json(filteredTodos);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
-  
-  if (priority) {
-    filteredTodos = filteredTodos.filter(todo => todo.priority === priority);
-  }
-  
-  if (sort) {
-    filteredTodos.sort((a, b) => {
-      if (sort === 'dueDate') {
-        return new Date(a.dueDate) - new Date(b.dueDate);
-      }
-      return a[sort] > b[sort] ? 1 : -1;
-    });
-  }
-  
-  res.json(filteredTodos);
 });
 
 // Get single todo
@@ -319,25 +344,29 @@ app.get('/todos/:id', (req, res) => {
 
 // Create todo
 app.post('/todos', (req, res) => {
-  const { title, description, status = 'todo', priority = 'medium', dueDate } = req.body;
-  
-  if (!title) {
-    return res.status(400).json({ error: "Title is required" });
+  try {
+    const { title, description, status = 'todo', priority = 'medium', dueDate } = req.body;
+    
+    if (!title) {
+      return res.status(400).json({ error: "Title is required" });
+    }
+    
+    const newTodo = {
+      id: todos.length > 0 ? Math.max(...todos.map(t => t.id)) + 1 : 1,
+      title,
+      description: description || '',
+      status,
+      priority,
+      dueDate: dueDate || null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    todos.push(newTodo);
+    res.status(201).json(newTodo);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
-  
-  const newTodo = {
-    id: todos.length > 0 ? Math.max(...todos.map(t => t.id)) + 1 : 1,
-    title,
-    description: description || '',
-    status,
-    priority,
-    dueDate: dueDate || null,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  };
-  
-  todos.push(newTodo);
-  res.status(201).json(newTodo);
 });
 
 // Update todo
@@ -384,7 +413,19 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'healthy' });
 });
 
+// Process error handlers
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (err) => {
+  console.error('Unhandled Rejection:', err);
+  process.exit(1);
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`Allowed CORS origins: ${allowedOrigins.join(', ')}`);
 });
