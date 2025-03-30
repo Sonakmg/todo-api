@@ -16,7 +16,7 @@ const allowedOrigins = [
   'https://to-do-frontend-gq58m6iwt-sonas-projects-3106105e.vercel.app',
   'https://to-do-frontend-cmvvmr4ti-sonas-projects-3106105e.vercel.app',
   'https://to-do-frontend-i65jk0j8e-sonas-projects-3106105e.vercel.app',
-  'https://to-do-frontend-j0j3qix4q-sonas-projects-3106105e.vercel.app'
+  'https://to-do-frontend-lhvwu1nxx-sonas-projects-3106105e.vercel.app'
 ];
 
 const corsOptions = {
